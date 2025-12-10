@@ -265,6 +265,8 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
  */
 int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 
+
+
 	/*
 	Really simple logic: we are just tracing if a path exists. 2 index, start of current dir and end of current dir. 
 	think: /asdf/foo/bar/qwerty.
@@ -457,20 +459,36 @@ static void rufs_destroy(void *userdata) {
 
 static int rufs_getattr(const char *path, struct stat *stbuf) {
 
-	//NOT DONE YET
+	struct inode tempNode; 
+
+	if(get_node_by_path(path, 0, &tempNode) < 0){return -ENOENT;}
+
+	stbuf->st_mode = tempNode.vstat.st_mode;
+	stbuf->st_uid = tempNode.vstat.st_uid;
+	stbuf->st_gid = tempNode.vstat.st_gid;
+	stbuf->st_nlink = tempNode.vstat.st_nlink;
+	stbuf->st_size = tempNode.vstat.st_size;
+	stbuf->st_mtime = tempNode.vstat.st_mtime;
+	stbuf->st_blksize = tempNode.vstat.st_blksize;
+	stbuf->st_blocks = tempNode.vstat.st_blocks;
+
+
+
 
 	// Step 1: call get_node_by_path() to get inode from path
 
 	// Step 2: fill attribute of file into stbuf from inode
 
-	stbuf->st_mode   = __S_IFDIR | 0755;
-	stbuf->st_nlink  = 2;
-	time(&stbuf->st_mtime);
-
+	
 	return 0;
 }
 
 static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
+
+	struct inode temp; 
+
+	if(get_node_by_path(path, 0, &temp)< 0){return -ENOENT;}
+
 
 	// Step 1: Call get_node_by_path() to get inode from path
 
@@ -492,6 +510,7 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 static int rufs_mkdir(const char *path, mode_t mode) {
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
+
 
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 
@@ -525,6 +544,10 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 static int rufs_open(const char *path, struct fuse_file_info *fi) {
 
+	struct inode temp; 
+
+	if(get_node_by_path(path, 0, &temp)< 0){return -ENOENT;}
+
 	// Step 1: Call get_node_by_path() to get inode from path
 
 	// Step 2: If not find, return -1
@@ -536,8 +559,13 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 
 	// Step 1: You could call get_node_by_path() to get inode from path
 
-	// Step 2: Based on size and offset, read its data blocks from disk
+	struct inode temp; 
 
+	if(get_node_by_path(path, 0, &temp)< 0){return -ENOENT;}
+
+	// Step 2: Based on size and offset, read its data blocks from disk
+	
+	char Buffer[size];
 	// Step 3: copy the correct amount of data from offset to buffer
 
 	// Note: this function should return the amount of bytes you copied to buffer
