@@ -428,7 +428,7 @@ static void *rufs_init(struct fuse_conn_info *conn) {
 		char block[BLOCK_SIZE];
 		memset(block, 0, BLOCK_SIZE);
 		if(bio_read(0, block) == -1) {
-			perror("rufs_init: bio_read");
+			perror("cant read in rufs init");
 			return NULL;
 		}
 		memcpy(&sb, block, sizeof(struct superblock));
@@ -437,10 +437,10 @@ static void *rufs_init(struct fuse_conn_info *conn) {
 		data_bitmap = (bitmap_t)malloc(BLOCK_SIZE);
 
 		if(bio_read(sb.i_bitmap_blk, inode_bitmap) == -1){
-        perror("rufs_init: bio_read inode_bitmap");
+        perror("inode read issue in rufs init");
 		}
 		if(bio_read(sb.d_bitmap_blk, data_bitmap) == -1){
-			perror("rufs_init: bio_read data_bitmap");
+			perror("data read issue in rufs init");
 		}
 
 	}
@@ -460,8 +460,9 @@ static void rufs_destroy(void *userdata) {
 	}	
 	inode_bitmap = NULL;
 	data_bitmap = NULL;
-	dev_close();
 	// Step 2: Close diskfile
+
+	dev_close();
 
 }
 
