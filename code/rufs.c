@@ -35,13 +35,9 @@ bitmap_t data_bitmap;
  * Get available inode number from bitmap
  */
 int get_avail_ino() {
-
 	// Step 1: Read inode bitmap from disk
-	
 	// Step 2: Traverse inode bitmap to find an available slot
-
-	// Step 3: Update inode bitmap and write to disk 
-
+	// Step 3: Update inode bitmap and write to disk
 	for(int i = 0; i < sb.max_inum; i++) {
 		if(get_bitmap(inode_bitmap, i)==0) {
 			set_bitmap(inode_bitmap, i);
@@ -414,7 +410,7 @@ static void *rufs_init(struct fuse_conn_info *conn) {
 	// Step 1a: If disk file is not found, call mkfs
 	if(access(diskfile_path, F_OK) == -1) {
 		rufs_mkfs();}
-	// Step 1b: If disk file is found, just initialize in-memory data structures
+	// Step 2: If disk file is found, just initialize in-memory data structures
 	else{
 		dev_open(diskfile_path);
 
@@ -459,22 +455,21 @@ static void rufs_destroy(void *userdata) {
 }
 
 static int rufs_getattr(const char *path, struct stat *stbuf) {
-	printf("\n>>> FUSE CALL: getattr(%s)\n", path);
-	struct inode tempNode; 
-
-	if(get_node_by_path(path, 0, &tempNode) < 0){return -ENOENT;}
-
-	stbuf->st_mode = tempNode.vstat.st_mode;
-	stbuf->st_uid = tempNode.vstat.st_uid;
-	stbuf->st_gid = tempNode.vstat.st_gid;
-	stbuf->st_nlink = tempNode.vstat.st_nlink;
-	stbuf->st_size = tempNode.vstat.st_size;
-	stbuf->st_mtime = tempNode.vstat.st_mtime;
-	stbuf->st_blksize = tempNode.vstat.st_blksize;
-	stbuf->st_blocks = tempNode.vstat.st_blocks;
-
+	struct inode temp; 
+	
 	// Step 1: call get_node_by_path() to get inode from path
+	if(get_node_by_path(path, 0, &temp) < 0){return -ENOENT;}
+
 	// Step 2: fill attribute of file into stbuf from inode
+	stbuf->st_mode = temp.vstat.st_mode;
+	stbuf->st_uid = temp.vstat.st_uid;
+	stbuf->st_gid = temp.vstat.st_gid;
+	stbuf->st_nlink = temp.vstat.st_nlink;
+	stbuf->st_size = temp.vstat.st_size;
+	stbuf->st_mtime = temp.vstat.st_mtime;
+	stbuf->st_blksize = temp.vstat.st_blksize;
+	stbuf->st_blocks = temp.vstat.st_blocks;
+
 	return 0;
 }
 
@@ -482,12 +477,9 @@ static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
 	printf("\n>>> FUSE CALL: opendir(%s)\n", path);
 	struct inode temp; 
 
-	if(get_node_by_path(path, 0, &temp)< 0){return -ENOENT;}
-
-
 	// Step 1: Call get_node_by_path() to get inode from path
-
-	// Step 2: If not find, return -1
+	// Step 2: If not find, return -1 - 
+	if(get_node_by_path(path, 0, &temp)< 0){return -ENOENT;}
 	
 	return 0;
 }
@@ -498,8 +490,8 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 
 	// Step 2: Read directory entries from its data blocks, and copy them to filler
 	printf("\n>>> FUSE CALL: readdir(%s)\n", path);
-	struct inode dir_inode;
-    if (get_node_by_path(path, 0, &dir_inode) < 0) {
+	struct inode dirInode;
+    if (get_node_by_path(path, 0, &dirInode) < 0) {
         return -ENOENT; }
 
     // always add . and ..
@@ -510,7 +502,7 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
     int Entries = BLOCK_SIZE / sizeof(struct dirent);
 
     for(int i = 0; i < 16; i++){
-        int blkno = dir_inode.direct_ptr[i];
+        int blkno = dirInode.direct_ptr[i];
         if(blkno == 0) continue;
 
         if(bio_read(blkno, block) < 0) continue;
@@ -543,7 +535,6 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 	// Step 5: Update inode for target directory
 
 	// Step 6: Call writei() to write inode to disk
-
 
 	printf("\n>>> FUSE CALL: mkdir(%s)\n", path);
 
@@ -586,7 +577,6 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 		return -EEXIST;
 	}
 
-	// Step 5: build new child inode
 	struct inode temp;
 	memset(&temp, 0, sizeof(temp));
 	temp.ino = Ino;
@@ -611,7 +601,6 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 	temp.vstat.st_blksize = BLOCK_SIZE;
 	temp.vstat.st_blocks = 1;
 
-	// Step 6: persist inode
 	if (writei(Ino, &temp) < 0) {
 		free(Path);
 		free(Path2);
@@ -732,15 +721,15 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 static int rufs_open(const char *path, struct fuse_file_info *fi) {
 	printf("\n>>> FUSE CALL: open(%s)\n", path);
-	struct inode node;
+	struct inode temp;
     
     // check that the inode exists
-    if(get_node_by_path(path, 0, &node) < 0){
+    if(get_node_by_path(path, 0, &temp) < 0){
         return -ENOENT;
     }
 
     // check type if you want (regular file expected)
-    if(!(node.type & __S_IFREG)){
+    if(!(temp.type & __S_IFREG)){
         return -EISDIR;   // trying to open a dir as a file
     }
 
@@ -766,18 +755,18 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 
 
 
-	struct inode inode;
+	struct inode temp;
 
-    if(get_node_by_path(path, 0, &inode) < 0)
+    if(get_node_by_path(path, 0, &temp) < 0)
         return -ENOENT;
 
-    if(!inode.valid)
+    if(!temp.valid)
         return -ENOENT;
 
     // step 1: don't read past file size
-    if(offset >= inode.size) return 0;
-    if(offset + size > inode.size)
-        size = inode.size - offset;
+    if(offset >= temp.size) return 0;
+    if(offset + size > temp.size)
+        size = temp.size - offset;
 
     size_t bytesRead = 0;
     size_t remaining = size;
@@ -787,7 +776,7 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 
     while(remaining > 0 && blockIndex < 16)
     {
-        int blkno = inode.direct_ptr[blockIndex];
+        int blkno = temp.direct_ptr[blockIndex];
         if(blkno <= 0) break; // unmapped block
 
         char block[BLOCK_SIZE];
@@ -825,14 +814,14 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 	// return size;
 
 	printf("\n>>> FUSE CALL: write(%s)\n", path);
-	struct inode node;
+	struct inode temp;
 
     // get inode
-    if(get_node_by_path(path, 0, &node) < 0){
+    if(get_node_by_path(path, 0, &temp) < 0){
         return -ENOENT;
     }
 
-    size_t bytes_written = 0;
+    size_t bytesWritten = 0;
     size_t remaining     = size;
 
     int blockIndex  = offset / BLOCK_SIZE;
@@ -840,33 +829,33 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
 
     while(remaining > 0 && blockIndex < 16)
     {
-        int blkno = node.direct_ptr[blockIndex];
+        int blockNumber = temp.direct_ptr[blockIndex];
 
         // allocate new block if needed
-        if(blkno <= 0){
-            blkno = get_avail_blkno();
-            if(blkno < 0){
+        if(blockNumber <= 0){
+            blockNumber = get_avail_blkno();
+            if(blockNumber < 0){
                 break;  // no space
             }
-            node.direct_ptr[blockIndex] = blkno;
+            temp.direct_ptr[blockIndex] = blockNumber;
         }
 
-        char blkbuf[BLOCK_SIZE];
-        memset(blkbuf, 0, BLOCK_SIZE);
+        char blockBuf[BLOCK_SIZE];
+        memset(blockBuf, 0, BLOCK_SIZE);
 
         // load existing content (in case of partial overwrite)
-        bio_read(blkno, blkbuf);
+        bio_read(blockNumber, blockBuf);
 
         size_t chunk = BLOCK_SIZE - blockOffset;
         if(chunk > remaining) chunk = remaining;
 
-        memcpy(blkbuf + blockOffset,
-               buffer + bytes_written,
+        memcpy(blockBuf + blockOffset,
+               buffer + bytesWritten,
                chunk);
 
-        bio_write(blkno, blkbuf);
+        bio_write(blockNumber, blockBuf);
 
-        bytes_written = bytes_written + chunk;
+        bytesWritten = bytesWritten + chunk;
         remaining     = remaining- chunk;
 
         blockOffset = 0;  // next block starts at 0
@@ -874,18 +863,18 @@ static int rufs_write(const char *path, const char *buffer, size_t size, off_t o
     }
 
     // update inode size if file grew
-    if(offset + bytes_written > node.size){
-        node.size = offset + bytes_written;
-        node.vstat.st_size = node.size;
+    if(offset + bytesWritten > temp.size){
+        temp.size = offset + bytesWritten;
+        temp.vstat.st_size = temp.size;
     }
 
     // update inode metadata
-    node.vstat.st_blocks = (node.size + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    node.vstat.st_mtime = time(NULL);
+    temp.vstat.st_blocks = (temp.size + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    temp.vstat.st_mtime = time(NULL);
 
-    writei(node.ino, &node);
+    writei(temp.ino, &temp);
 
-    return bytes_written;
+    return bytesWritten;
 }
 
 
