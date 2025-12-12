@@ -462,7 +462,11 @@ static void rufs_destroy(void *userdata) {
 static int rufs_getattr(const char *path, struct stat *stbuf) {
 	struct inode temp; 
 
+	// Step 1: call get_node_by_path() to get inode from path
+
 	if(get_node_by_path(path, 0, &temp) < 0){return -ENOENT;}
+
+	// Step 2: fill attribute of file into stbuf from inode
 
 	stbuf->st_mode = temp.vstat.st_mode;
 	stbuf->st_uid = temp.vstat.st_uid;
@@ -473,8 +477,6 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 	stbuf->st_blksize = temp.vstat.st_blksize;
 	stbuf->st_blocks = temp.vstat.st_blocks;
 
-	// Step 1: call get_node_by_path() to get inode from path
-	// Step 2: fill attribute of file into stbuf from inode
 	return 0;
 }
 
