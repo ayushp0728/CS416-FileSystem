@@ -467,19 +467,18 @@ static void rufs_destroy(void *userdata) {
 }
 
 static int rufs_getattr(const char *path, struct stat *stbuf) {
-	printf("\n>>> FUSE CALL: getattr(%s)\n", path);
-	struct inode tempNode; 
+	struct inode temp; 
 
-	if(get_node_by_path(path, 0, &tempNode) < 0){return -ENOENT;}
+	if(get_node_by_path(path, 0, &temp) < 0){return -ENOENT;}
 
-	stbuf->st_mode = tempNode.vstat.st_mode;
-	stbuf->st_uid = tempNode.vstat.st_uid;
-	stbuf->st_gid = tempNode.vstat.st_gid;
-	stbuf->st_nlink = tempNode.vstat.st_nlink;
-	stbuf->st_size = tempNode.vstat.st_size;
-	stbuf->st_mtime = tempNode.vstat.st_mtime;
-	stbuf->st_blksize = tempNode.vstat.st_blksize;
-	stbuf->st_blocks = tempNode.vstat.st_blocks;
+	stbuf->st_mode = temp.vstat.st_mode;
+	stbuf->st_uid = temp.vstat.st_uid;
+	stbuf->st_gid = temp.vstat.st_gid;
+	stbuf->st_nlink = temp.vstat.st_nlink;
+	stbuf->st_size = temp.vstat.st_size;
+	stbuf->st_mtime = temp.vstat.st_mtime;
+	stbuf->st_blksize = temp.vstat.st_blksize;
+	stbuf->st_blocks = temp.vstat.st_blocks;
 
 	// Step 1: call get_node_by_path() to get inode from path
 	// Step 2: fill attribute of file into stbuf from inode
