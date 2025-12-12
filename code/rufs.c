@@ -350,7 +350,6 @@ int rufs_mkfs() {
 	memcpy(block, &sb, sizeof(struct superblock));
 
 	if (bio_write(0, block) == -1) {
-		perror("rufs_mkfs: bio_write");
 		return -1;
 	}
 
@@ -390,7 +389,6 @@ int rufs_mkfs() {
 
 	memset(block, 0, BLOCK_SIZE);
 	if (bio_read(inode_block_num, block) == -1) {
-		perror("rufs_mkfs: bio_read");
 		return -1;
 	}
 
@@ -398,13 +396,11 @@ int rufs_mkfs() {
 	disk_inodes[inode_offset] = root_inode;
 
 	if(bio_write(inode_block_num, block) == -1) {
-		perror("rufs_mkfs: bio_write root inode");
 		return -1;
 	}
 
 	memset(block, 0, BLOCK_SIZE);
 	if(bio_write(root_inode.direct_ptr[0], block) == -1) {
-		perror("rufs_mkfs: bio_write root data block");
 		return -1;
 	}
 
