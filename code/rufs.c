@@ -263,13 +263,6 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 
 	if(path == NULL){ return -1;}
 
-	// skip leading slashes
-	while(path[0] == '/'){
-	
-		path++;
-		printf("after strip, path=%s\n", path);}
-
-
 	// empty or root
 	if(path[0] == '\0'){
 		return readi(0, inode); // inode 0 = root
@@ -285,8 +278,10 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 
 	
 	while(path[Start] != '\0'){
-	End = Start;
-	while((path[End] != '\0') && path[End] != '/'){End++;}
+		End = Start;
+	while((path[End] != '\0') && path[End] != '/'){
+		End++;
+	}
 
 	int len = End-Start;
 
@@ -298,17 +293,19 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	if(len > NAME_MAX){ len = NAME_MAX-1;} //failed somewhere because len < Name_Max since we ignore the first /
 	memcpy(name, &path[Start], len);
 	name[len] = '\0';
-	printf("  token='%s' before lookup in ino=%d\n", name, lookupIno);
 
 
-	if(dir_find(lookupIno, name, len, &dir) < 0){ return -1;}
+	if(dir_find(lookupIno, name, len, &dir) < 0){ 
+		return -1;
+	}
 	lookupIno = dir.ino; 
-	if(path[End] == '\0'){ break;}
+	if(path[End] == '\0'){ 
+		break;
+	}
 
 	Start = End + 1;
 
 	}
-	printf("get_node_by_path: returning inode=%d\n", lookupIno);
 	return readi(lookupIno, inode);
 
 	
