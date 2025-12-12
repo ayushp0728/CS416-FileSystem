@@ -113,6 +113,7 @@ int writei(uint16_t ino, struct inode *inode) {
 	if(bio_write(ExactIndex, buffer) < 0){return -1; } return 0;}
 	
 int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *dirent) {
+	
 
 
    // Step 1: Call readi() to get the inode using ino (inode number of current directory)
@@ -122,8 +123,9 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
    // Step 2: Get data block of current directory from inode
    char block[BLOCK_SIZE];
    int Entries = BLOCK_SIZE / sizeof(struct dirent);
+   int numDirect = sizeof(DirectoryToFind.direct_ptr) / sizeof(DirectoryToFind.direct_ptr[0]);
    // Step 3: Read directory's data block and check each directory entry.
-   for(int i = 0; i < 16; i++) { //$why is this 16?? because .h is set to 16? if they change in testing, this would fail
+   for(int i = 0; i < numDirect; i++) { // why is this 16?? because .h is set to 16? if they change in testing, this would fail
        int blockNum = DirectoryToFind.direct_ptr[i];
        if(blockNum == 0) {continue;}
        if(bio_read(blockNum, block) == -1) {return -1;}
@@ -154,12 +156,17 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 			// Step 1: Read dir_inode's data block and check each directory entry of dir_inode
 
 	if(fname == NULL){ return -1;}
-	int freeSlot = -1; int freeBlock = -1; 
+	int freeSlot = -1; 
+	int freeBlock = -1; 
 	int Insert = -1;
+
 	char block[BLOCK_SIZE];
     int Entries = BLOCK_SIZE / sizeof(struct dirent);
-	for(int i = 0; i < 16; i++){
+	int numDirect = sizeof(dir_inode.direct_ptr) / sizeof(dir_inode.direct_ptr[0]);
+
+	for(int i = 0; i < numDirect; i++){
 		int blockNum = dir_inode.direct_ptr[i];
+		
 		if(bio_read(blockNum, block) == -1) { return -1;}
 		if(blockNum == 0){
 			if(freeSlot < 0){freeSlot = i;}
@@ -261,7 +268,9 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	*/
 	printf("get_node_by_path: path=%s\n", path);
 
-	if(path == NULL){ return -1;}
+	if(path == NULL){ 
+		return -1;
+	}
 
 	// empty or root
 	if(path[0] == '\0'){
@@ -496,6 +505,7 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	// Step 2: Read directory entries from its data blocks, and copy them to filler
 	printf("\n>>> FUSE CALL: readdir(%s)\n", path);
 	struct inode dir_inode;
+	
     if (get_node_by_path(path, 0, &dir_inode) < 0) {
         return -ENOENT; }
 
@@ -506,7 +516,9 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
     char block[BLOCK_SIZE];
     int Entries = BLOCK_SIZE / sizeof(struct dirent);
 
-    for(int i = 0; i < 16; i++){
+	int numDirect = sizeof(dir_inode.direct_ptr) / sizeof(dir_inode.direct_ptr[0]);
+
+    for(int i = 0; i < numDirect; i++){
         int blkno = dir_inode.direct_ptr[i];
         if(blkno == 0) continue;
 
