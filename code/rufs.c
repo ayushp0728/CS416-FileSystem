@@ -113,9 +113,6 @@ int writei(uint16_t ino, struct inode *inode) {
 	if(bio_write(ExactIndex, buffer) < 0){return -1; } return 0;}
 	
 int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *dirent) {
-	
-
-
    // Step 1: Call readi() to get the inode using ino (inode number of current directory)
    printf("dir_find: in dir=%d looking for '%s'\n", ino, fname);
    struct inode DirectoryToFind;
@@ -125,7 +122,7 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
    int Entries = BLOCK_SIZE / sizeof(struct dirent);
    int numDirect = sizeof(DirectoryToFind.direct_ptr) / sizeof(DirectoryToFind.direct_ptr[0]);
    // Step 3: Read directory's data block and check each directory entry.
-   for(int i = 0; i < numDirect; i++) { // why is this 16?? because .h is set to 16? if they change in testing, this would fail
+   for(int i = 0; i < numDirect; i++) { 
        int blockNum = DirectoryToFind.direct_ptr[i];
        if(blockNum == 0) {continue;}
        if(bio_read(blockNum, block) == -1) {return -1;}
