@@ -470,7 +470,8 @@ static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
 
 	if(get_node_by_path(path, 0, &temp)< 0){return -ENOENT;}
 
-
+	if (!(temp.vstat.st_mode & __S_IFDIR))
+        return -ENOTDIR;
 
 	// Step 2: If not find, return -1
 	//decided to just do it the inverse way
