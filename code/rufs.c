@@ -540,22 +540,13 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 
 static int rufs_mkdir(const char *path, mode_t mode) {
 
-	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
-
-
+	
 	// Step 2: Call get_node_by_path() to get inode of parent directory
-
 	// Step 3: Call get_avail_ino() to get an available inode number
-
-	// Step 4: Call dir_add() to add directory entry of target directory to parent directory
-
-	// Step 5: Update inode for target directory
-
 	// Step 6: Call writei() to write inode to disk
-
-
 	printf("\n>>> FUSE CALL: mkdir(%s)\n", path);
 
+	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
 	char *Path = strdup(path);
 	char *Parent = dirname(Path);
 
@@ -572,7 +563,6 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 		return -EINVAL;
 	}
 
-	// Step 2: get parent inode
 	struct inode ParentInode;
 	if (get_node_by_path(Parent, 0, &ParentInode) < 0) {
 		free(Path);
@@ -580,22 +570,23 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 		return -ENOENT;
 	}
 
-	// Step 3: alloc new inode number
 	int Ino = get_avail_ino();
 	if (Ino < 0) {
 		free(Path);
 		free(Path2);
 		return -ENOSPC;
 	}
+	// Step 4: Call dir_add() to add directory entry of target directory to parent directory
 
-	// Step 4: add entry to parent
+	// Step 5: Update inode for target directory
+
 	if (dir_add(ParentInode, Ino, Target, strlen(Target)) < 0) {
 		free(Path);
 		free(Path2);
 		return -EEXIST;
 	}
 
-	// Step 5: build new child inode
+	
 	struct inode temp;
 	memset(&temp, 0, sizeof(temp));
 	temp.ino = Ino;
@@ -620,7 +611,9 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 	temp.vstat.st_blksize = BLOCK_SIZE;
 	temp.vstat.st_blocks = 1;
 
-	// Step 6: persist inode
+	// Step 6: Call writei() to write inode to disk
+
+
 	if (writei(Ino, &temp) < 0) {
 		free(Path);
 		free(Path2);
