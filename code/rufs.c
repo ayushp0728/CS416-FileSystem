@@ -375,7 +375,7 @@ int rufs_mkfs() {
 	root_inode.link = 2;
 	root_inode.direct_ptr[0] = sb.d_start_blk; // first data block
 	
-	root_inode.vstat.st_mode = __S_IFDIR | 0755;
+	root_inode.vstat.st_mode = __S_IFDIR | 0755; //0755 from the test case
 	root_inode.vstat.st_nlink = 2;
 	root_inode.vstat.st_uid = getuid();
 	root_inode.vstat.st_gid = getgid();
