@@ -703,14 +703,13 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 
 static int rufs_open(const char *path, struct fuse_file_info *fi) {
-	printf("\n>>> FUSE CALL: open(%s)\n", path);
 	struct inode node;
     
     if(get_node_by_path(path, 0, &node) < 0){
         return -ENOENT;
     }
 
-    if(!(node.type & __S_IFREG)){
+    if(!(node.vstat.st_mode & __S_IFREG)){
         return -EISDIR;  
     }
 
