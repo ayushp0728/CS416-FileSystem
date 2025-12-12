@@ -9,7 +9,7 @@
 #include <dirent.h>
 
 /* You need to change this macro to your RUFS mount point*/
-#define TESTDIR "/tmp/app182/mountdir"
+#define TESTDIR "/tmp/sb2396/mountdir"
 
 #define N_FILES 100
 #define BLOCKSIZE 4096
