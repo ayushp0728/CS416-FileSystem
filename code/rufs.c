@@ -153,7 +153,7 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
 
 
 int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t name_len) {
-			// Step 1: Read dir_inode's data block and check each directory entry of dir_inode
+	// Step 1: Read dir_inode's data block and check each directory entry of dir_inode
 
 	if(fname == NULL){ return -1;}
 	int freeSlot = -1; 
@@ -209,6 +209,7 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 
 		if(dir_inode.size <= size){ dir_inode.size = size; dir_inode.vstat.st_size = dir_inode.size;}
 		if(bio_write(blockNum,block) == -1){return -1;}
+
 		return writei(dir_inode.ino, &dir_inode); 
 
 	}
