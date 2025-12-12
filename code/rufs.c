@@ -219,14 +219,11 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 
 		struct dirent *directoryEntryNextAvailable = &DirectoryEntry[0];
 		directoryEntryNextAvailable->ino   = f_ino;
-		if (name_len >= sizeof(directoryEntryNextAvailable->name)) {
-			name_len = sizeof(directoryEntryNextAvailable->name) - 1;
-		}
+		if (name_len >= sizeof(directoryEntryNextAvailable->name)) {name_len = sizeof(directoryEntryNextAvailable->name) - 1;}
 		directoryEntryNextAvailable->len   = name_len;
 		directoryEntryNextAvailable->valid = 1;
 
-		memset(directoryEntryNextAvailable->name, 0,
-			sizeof(directoryEntryNextAvailable->name));
+		memset(directoryEntryNextAvailable->name, 0, sizeof(directoryEntryNextAvailable->name));
 		memcpy(directoryEntryNextAvailable->name, fname, name_len);
 		directoryEntryNextAvailable->name[name_len] = '\0';
 
