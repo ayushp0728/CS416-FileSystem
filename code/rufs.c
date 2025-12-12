@@ -264,38 +264,27 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	
 	
 	*/
-	printf("get_node_by_path: path=%s\n", path);
 
 	if(path == NULL){ 
-		return -1;
-	}
-
-	// empty or root
+		return -1;}
 	if(path[0] == '\0'){
-		return readi(0, inode); // inode 0 = root
-	}
+		return readi(0, inode);} // inode 0 = root
 	uint16_t lookupIno = ino;
-
-
 	int Start = 0;
 	int End;
 
 	if(path[0]== '/'){ 
-		Start++;}
-
-	
+		Start++;}	
 	while(path[Start] != '\0'){
 		End = Start;
 	while((path[End] != '\0') && path[End] != '/'){
-		End++;
-	}
+		End++;	}
 
 	int len = End-Start;
 
 	if(len <= 0){ return -1;}
 
 	struct dirent dir; 
-
 	char name[NAME_MAX];
 	if(len > NAME_MAX){ len = NAME_MAX-1;} //failed somewhere because len < Name_Max since we ignore the first /
 	memcpy(name, &path[Start], len);
@@ -307,12 +296,8 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	}
 	lookupIno = dir.ino; 
 	if(path[End] == '\0'){ 
-		break;
-	}
-
-	Start = End + 1;
-
-	}
+		break;}
+	Start = End + 1;}
 	return readi(lookupIno, inode);
 
 	
