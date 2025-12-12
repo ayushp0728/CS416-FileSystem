@@ -489,7 +489,6 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
     if (get_node_by_path(path, 0, &dirInode) < 0) {
         return -ENOENT; }
 
-    // always add . and ..
     filler(buffer, ".",  NULL, 0);
     filler(buffer, "..", NULL, 0);
 
