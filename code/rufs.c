@@ -743,17 +743,14 @@ static int rufs_open(const char *path, struct fuse_file_info *fi) {
 	printf("\n>>> FUSE CALL: open(%s)\n", path);
 	struct inode node;
     
-    // check that the inode exists
     if(get_node_by_path(path, 0, &node) < 0){
         return -ENOENT;
     }
 
-    // check type if you want (regular file expected)
     if(!(node.type & __S_IFREG)){
-        return -EISDIR;   // trying to open a dir as a file
+        return -EISDIR;  
     }
 
-    // nothing else to do (no real fd)
     return 0;
 }
 
