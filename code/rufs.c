@@ -518,7 +518,6 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 	// Step 3: Call get_avail_ino() to get an available inode number
 	// Step 6: Call writei() to write inode to disk
-	printf("\n>>> FUSE CALL: mkdir(%s)\n", path);
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
 	char *Path = strdup(path);
@@ -621,7 +620,6 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	// Step 6: Call writei() to write inode to disk
 
 	// 1: split parent + filename
-	printf("\n>>> FUSE CALL: create(%s)\n", path);
     char *Path   = strdup(path);
     char *Parent = dirname(Path);
 
@@ -644,12 +642,10 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     // 2: get parent dir inode
     struct inode ParentInode;
     if (get_node_by_path(Parent, 0, &ParentInode) < 0) {
-		printf("create: parent lookup FAILED for %s\n", Parent);
         free(Path);
         free(Path2);
         return -ENOENT;
     }
-	printf("create: parent lookup OK for %s (ino=%d)\n", Parent, ParentInode.ino);
 
 	printf("calling dir_add\n");
 
