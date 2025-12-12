@@ -261,9 +261,8 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 
 	// skip leading slashes
 	while(path[0] == '/'){
-	
 		path++;
-		printf("after strip, path=%s\n", path);}
+	}
 
 
 	// empty or root
@@ -273,38 +272,43 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	uint16_t lookupIno = ino;
 
 
-	int Start = 0;
-	int End;
+	int start = 0;
+	int end;
 
 	if(path[0]== '/'){ 
-		Start++;}
+		start++;
+	}
 
 	
-	while(path[Start] != '\0'){
-	End = Start;
-	while((path[End] != '\0') && path[End] != '/'){End++;}
+	while(path[start] != '\0'){
+		end = start;
+		while((path[end] != '\0') && path[end] != '/'){
+			end++;
+		}
 
-	int len = End-Start;
+		int len = end-start;
 
-	if(len <= 0){ return -1;}
+		if(len <= 0){ return -1;}
 
-	struct dirent dir; 
+		struct dirent dir; 
 
-	char name[NAME_MAX];
-	if(len > NAME_MAX){ len = NAME_MAX-1;} //failed somewhere because len < Name_Max since we ignore the first /
-	memcpy(name, &path[Start], len);
-	name[len] = '\0';
-	printf("  token='%s' before lookup in ino=%d\n", name, lookupIno);
+		char name[NAME_MAX];
+		if(len > NAME_MAX){ len = NAME_MAX-1;} //failed somewhere because len < Name_Max since we ignore the first /
+		memcpy(name, &path[start], len);
+		name[len] = '\0';
 
 
-	if(dir_find(lookupIno, name, len, &dir) < 0){ return -1;}
-	lookupIno = dir.ino; 
-	if(path[End] == '\0'){ break;}
+		if(dir_find(lookupIno, name, len, &dir) < 0){ 
+			return -1;
+		}
+		lookupIno = dir.ino; 
+		if(path[end] == '\0'){ 
+			break;
+		}
 
-	Start = End + 1;
+		start = end + 1;
 
 	}
-	printf("get_node_by_path: returning inode=%d\n", lookupIno);
 	return readi(lookupIno, inode);
 
 	
@@ -338,10 +342,7 @@ int rufs_mkfs() {
 	memset(block, 0, BLOCK_SIZE);
 	memcpy(block, &sb, sizeof(struct superblock));
 
-	if (bio_write(0, block) == -1) {
-		perror("rufs_mkfs: bio_write");
-		return -1;
-	}
+
 
 	//allocate bitmaps
 	inode_bitmap = (bitmap_t)malloc(BLOCK_SIZE);
@@ -378,24 +379,14 @@ int rufs_mkfs() {
 	int inode_block_num = sb.i_start_blk + block_index;
 
 	memset(block, 0, BLOCK_SIZE);
-	if (bio_read(inode_block_num, block) == -1) {
-		perror("rufs_mkfs: bio_read");
-		return -1;
-	}
+	
 
 	struct inode *disk_inodes = (struct inode *)block;
 	disk_inodes[inode_offset] = root_inode;
 
-	if(bio_write(inode_block_num, block) == -1) {
-		perror("rufs_mkfs: bio_write root inode");
-		return -1;
-	}
 
 	memset(block, 0, BLOCK_SIZE);
-	if(bio_write(root_inode.direct_ptr[0], block) == -1) {
-		perror("rufs_mkfs: bio_write root data block");
-		return -1;
-	}
+	
 
 
 	return 0;
@@ -425,12 +416,6 @@ static void *rufs_init(struct fuse_conn_info *conn) {
 		inode_bitmap = (bitmap_t)malloc(BLOCK_SIZE);
 		data_bitmap = (bitmap_t)malloc(BLOCK_SIZE);
 
-		if(bio_read(sb.i_bitmap_blk, inode_bitmap) == -1){
-        perror("rufs_init: bio_read inode_bitmap");
-		}
-		if(bio_read(sb.d_bitmap_blk, data_bitmap) == -1){
-			perror("rufs_init: bio_read data_bitmap");
-		}
 
 	}
 	// and read superblock from disk
@@ -449,8 +434,9 @@ static void rufs_destroy(void *userdata) {
 	}	
 	inode_bitmap = NULL;
 	data_bitmap = NULL;
-	dev_close();
 	// Step 2: Close diskfile
+
+	dev_close();
 
 }
 
@@ -474,7 +460,6 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 }
 
 static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
-	printf("\n>>> FUSE CALL: opendir(%s)\n", path);
 	struct inode temp; 
 
 	// Step 1: Call get_node_by_path() to get inode from path
