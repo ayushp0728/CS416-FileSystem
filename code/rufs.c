@@ -504,10 +504,9 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
 	// Step 1: Call get_node_by_path() to get inode from path
 
 	// Step 2: Read directory entries from its data blocks, and copy them to filler
-	printf("\n>>> FUSE CALL: readdir(%s)\n", path);
-	struct inode dir_inode;
+	struct inode dirInode;
 	
-    if (get_node_by_path(path, 0, &dir_inode) < 0) {
+    if (get_node_by_path(path, 0, &dirInode) < 0) {
         return -ENOENT; }
 
     // always add . and ..
@@ -517,10 +516,10 @@ static int rufs_readdir(const char *path, void *buffer, fuse_fill_dir_t filler, 
     char block[BLOCK_SIZE];
     int Entries = BLOCK_SIZE / sizeof(struct dirent);
 
-	int numDirect = sizeof(dir_inode.direct_ptr) / sizeof(dir_inode.direct_ptr[0]);
+	int numDirect = sizeof(dirInode.direct_ptr) / sizeof(dirInode.direct_ptr[0]);
 
     for(int i = 0; i < numDirect; i++){
-        int blkno = dir_inode.direct_ptr[i];
+        int blkno = dirInode.direct_ptr[i];
         if(blkno == 0) continue;
 
         if(bio_read(blkno, block) < 0) continue;
