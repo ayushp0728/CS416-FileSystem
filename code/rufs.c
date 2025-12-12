@@ -114,6 +114,7 @@ int writei(uint16_t ino, struct inode *inode) {
 	
 int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *dirent) {
    // Step 1: Call readi() to get the inode using ino (inode number of current directory)
+   printf("dir_find: in dir=%d looking for '%s'\n", ino, fname);
    struct inode DirectoryToFind;
    if(readi(ino, &DirectoryToFind) == -1) {return -1;}
    // Step 2: Get data block of current directory from inode
@@ -135,6 +136,7 @@ int dir_find(uint16_t ino, const char *fname, size_t name_len, struct dirent *di
            if(Dir[j].valid==1 && Dir[j].len == name_len && strncmp(Dir[j].name, fname, name_len) == 0) {
                // If the name matches, then copy directory entry to dirent structure
                *dirent = Dir[j];
+               printf("dir_find: FOUND %s -> ino=%d\n", fname, dirent->ino);
                return 0;
            }
        }
@@ -162,10 +164,11 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 	for(int i = 0; i < numDirect; i++){
 		int blockNum = dir_inode.direct_ptr[i];
 		
-		if(bio_read(blockNum, block) == -1) { return -1;}
 		if(blockNum == 0){
 			if(freeSlot < 0){freeSlot = i;}
 			continue;}
+		if(bio_read(blockNum, block) == -1) { return -1;}
+
 		struct dirent *DirectoryEntry = (struct dirent *)block;
 	// Step 2: Check if fname (directory name) is already used in other entries
 
@@ -440,9 +443,11 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 	struct inode temp; 
 
 	// Step 1: call get_node_by_path() to get inode from path
+
 	if(get_node_by_path(path, 0, &temp) < 0){return -ENOENT;}
 
 	// Step 2: fill attribute of file into stbuf from inode
+
 	stbuf->st_mode = temp.vstat.st_mode;
 	stbuf->st_uid = temp.vstat.st_uid;
 	stbuf->st_gid = temp.vstat.st_gid;
@@ -514,6 +519,7 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 	// Step 2: Call get_node_by_path() to get inode of parent directory
 	// Step 3: Call get_avail_ino() to get an available inode number
 	// Step 6: Call writei() to write inode to disk
+	printf("\n>>> FUSE CALL: mkdir(%s)\n", path);
 
 	// Step 1: Use dirname() and basename() to separate parent directory path and target directory name
 	char *Path = strdup(path);
@@ -554,6 +560,9 @@ static int rufs_mkdir(const char *path, mode_t mode) {
 		free(Path2);
 		return -EEXIST;
 	}
+
+	ParentInode.vstat.st_nlink = ParentInode.vstat.st_nlink + 1;
+	writei(ParentInode.ino, &ParentInode);
 
 	
 	struct inode temp;
@@ -616,6 +625,7 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 	// Step 6: Call writei() to write inode to disk
 
 	// 1: split parent + filename
+	printf("\n>>> FUSE CALL: create(%s)\n", path);
     char *Path   = strdup(path);
     char *Parent = dirname(Path);
 
@@ -638,10 +648,12 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     // 2: get parent dir inode
     struct inode ParentInode;
     if (get_node_by_path(Parent, 0, &ParentInode) < 0) {
+		printf("create: parent lookup FAILED for %s\n", Parent);
         free(Path);
         free(Path2);
         return -ENOENT;
     }
+	printf("create: parent lookup OK for %s (ino=%d)\n", Parent, ParentInode.ino);
 
 	printf("calling dir_add\n");
 
@@ -699,13 +711,14 @@ static int rufs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 
 static int rufs_open(const char *path, struct fuse_file_info *fi) {
+	printf("\n>>> FUSE CALL: open(%s)\n", path);
 	struct inode node;
     
     if(get_node_by_path(path, 0, &node) < 0){
         return -ENOENT;
     }
 
-    if(!(node.vstat.st_mode & __S_IFREG)){
+    if(!(node.type & __S_IFREG)){
         return -EISDIR;  
     }
 
@@ -713,6 +726,7 @@ static int rufs_open(const char *path, struct fuse_file_info *fi) {
 }
 
 static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
+	printf("\n>>> FUSE CALL: read(%s)\n", path);
 	// Step 1: You could call get_node_by_path() to get inode from path
 
 	// struct inode temp; 
@@ -726,8 +740,6 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 
 	// // Note: this function should return the amount of bytes you copied to buffer
 	// return 0;
-
-
 
 	struct inode inode;
 
@@ -748,8 +760,7 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
     int blockIndex = offset / BLOCK_SIZE;
     int blockOffset = offset % BLOCK_SIZE;
 
-    while(remaining > 0 && blockIndex < 16)
-    {
+    while(remaining > 0 && blockIndex < 16) {
         int blkno = inode.direct_ptr[blockIndex];
         if(blkno <= 0) break; // unmapped block
 
@@ -763,8 +774,8 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 
         memcpy(buffer + bytesRead, block + blockOffset, chunk);
 
-        bytesRead = bytesRead + chunk;
-        remaining = remaining - chunk;
+        bytesRead += chunk;
+        remaining -= chunk;
 
         // subsequent iterations read from start of blocks
         blockOffset = 0;
@@ -776,7 +787,18 @@ static int rufs_read(const char *path, char *buffer, size_t size, off_t offset, 
 
 static int rufs_write(const char *path, const char *buffer, size_t size, off_t offset, struct fuse_file_info *fi) {
 
-	
+	// Step 1: You could call get_node_by_path() to get inode from path
+
+	// Step 2: Based on size and offset, read its data blocks from disk
+
+	// Step 3: Write the correct amount of data from offset to disk
+
+	// Step 4: Update the inode info and write it to disk
+
+	// Note: this function should return the amount of bytes you write to disk
+	// return size;
+
+	printf("\n>>> FUSE CALL: write(%s)\n", path);
 	struct inode node;
 
     // get inode
