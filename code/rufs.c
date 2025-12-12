@@ -188,10 +188,8 @@ int dir_add(struct inode dir_inode, uint16_t f_ino, const char *fname, size_t na
 		struct dirent *directoryEntryNextAvailable = &DirectoryEntry[Insert];
 		directoryEntryNextAvailable->ino   = f_ino;
 
-		// clamp name_len to fit in the field
-		if (name_len >= sizeof(directoryEntryNextAvailable->name)) {
-			name_len = sizeof(directoryEntryNextAvailable->name) - 1;
-		}
+	if (name_len >= sizeof(directoryEntryNextAvailable->name)) {
+		name_len = sizeof(directoryEntryNextAvailable->name) - 1;}
 		directoryEntryNextAvailable->len   = name_len;
 		directoryEntryNextAvailable->valid = 1;
 
@@ -297,7 +295,8 @@ int get_node_by_path(const char *path, uint16_t ino, struct inode *inode) {
 	lookupIno = dir.ino; 
 	if(path[End] == '\0'){ 
 		break;}
-	Start = End + 1;}
+	Start = End + 1;
+}
 	return readi(lookupIno, inode);
 
 	
