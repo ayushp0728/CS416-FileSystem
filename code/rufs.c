@@ -486,15 +486,15 @@ static int rufs_getattr(const char *path, struct stat *stbuf) {
 }
 
 static int rufs_opendir(const char *path, struct fuse_file_info *fi) {
-	printf("\n>>> FUSE CALL: opendir(%s)\n", path);
 	struct inode temp; 
+	// Step 1: Call get_node_by_path() to get inode from path
 
 	if(get_node_by_path(path, 0, &temp)< 0){return -ENOENT;}
 
 
-	// Step 1: Call get_node_by_path() to get inode from path
 
 	// Step 2: If not find, return -1
+	//decided to just do it the inverse way
 	
 	return 0;
 }
